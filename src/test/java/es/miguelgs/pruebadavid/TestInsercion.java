@@ -25,14 +25,14 @@ public class TestInsercion {
 		
 		CountDownLatch c = new CountDownLatch(1);
 		Observable.from(idsDeuda)	
-				  .observeOn(Schedulers.io())
 				  .flatMap(id -> Observable.just(DatosDeDeuda.getDiasAccionDeuda(id))						  				
 						  				.map(datosDeuda -> Estrategia.getAccionesDetalle(id, 
 						  					   											codsEstrategia, 
 						  					   											datosDeuda.getDiaAccion(), 
 						  					   											datosDeuda.getDiaAccionLlamada(), 
 						  					   											datosDeuda.getArquetipo()))
-									   .observeOn(Schedulers.io())
+									   .subscribeOn(Schedulers.io()) // CON ESTE UTILIZA TANTOS THREADS COMO SEA NECESARIO Y CUANDO TERMINAN LOS MANTIENE PARA REUTILIZAR
+									   //.subscribeOn(Schedulers.computation()) // CON ESTE UTILIZA TANTOS THREADS COMO CORES TENGA LA MAQUINA
 						  			   .map(listaAccionesDetalle -> insertarInBBDD(listaAccionesDetalle, "FILTRO", id))
 						  			   .flatMapIterable(x -> x)
 						  			   .map(accionDetalle -> insertarFilaFichero(accionDetalle.getAccion().getCodAccion(), id, "SHEET"))) // 
