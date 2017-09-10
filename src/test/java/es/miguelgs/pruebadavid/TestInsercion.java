@@ -46,7 +46,7 @@ public class TestInsercion {
 	}
 	
 	private Observable<String> procesarDeuda(BigDecimal idDeuda){
-		return Observable.just(DatosDeDeuda.getDiasAccionDeuda(idDeuda))						  				
+		return Observable.fromCallable(() -> DatosDeDeuda.getDiasAccionDeuda(idDeuda))						  				
 						 .map(datosDeuda -> Estrategia.getAccionesDetalle(idDeuda, 
 				   											codsEstrategia, 
 				   											datosDeuda.getDiaAccion(), 
