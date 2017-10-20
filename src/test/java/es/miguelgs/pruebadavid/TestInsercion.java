@@ -40,25 +40,31 @@ public class TestInsercion {
 	private Observable<String> procesarDeudas(Collection<BigDecimal> idsDeuda){
 		return Observable.from(idsDeuda)	
 						 .flatMap(id -> this.procesarDeuda(id)
-								 			.subscribeOn(Schedulers.io()) // CON ESTE UTILIZA TANTOS THREADS COMO SEA NECESARIO Y CUANDO TERMINAN LOS MANTIENE PARA REUTILIZAR
-								 			//.subscribeOn(Schedulers.computation()) // CON ESTE UTILIZA TANTOS THREADS COMO CORES TENGA LA MAQUINA
+								 			//.subscribeOn(Schedulers.io()) // CON ESTE UTILIZA TANTOS THREADS COMO SEA NECESARIO Y CUANDO TERMINAN LOS MANTIENE PARA REUTILIZAR
+								 			.subscribeOn(Schedulers.computation()) // CON ESTE UTILIZA TANTOS THREADS COMO CORES TENGA LA MAQUINA
 		  );
 	}
 	
 	private Observable<String> procesarDeuda(BigDecimal idDeuda){
 		return Observable.fromCallable(() -> DatosDeDeuda.getDiasAccionDeuda(idDeuda))						  				
-						 .map(datosDeuda -> Estrategia.getAccionesDetalle(idDeuda, 
-				   											codsEstrategia, 
-				   											datosDeuda.getDiaAccion(), 
-				   											datosDeuda.getDiaAccionLlamada(), 
-				   											datosDeuda.getArquetipo()))
-						 .map(listaAccionesDetalle -> insertarInBBDD(listaAccionesDetalle, "FILTRO", idDeuda))
-						 .flatMapIterable(x -> x)
-						 .map(accionDetalle -> insertarFilaFichero(accionDetalle.getAccion().getCodAccion(), idDeuda, "SHEET"));
+						 .flatMap(datosDeuda -> insertarAccionesFromDeuda(datosDeuda, idDeuda));
 	}
 	
-	private String insertarFilaFichero(String codAccion, BigDecimal id, String sheet){
-		Printer.printMessage("INSERCION EN FICHERO: codAccion: %s, id: %f, sheet: %s", codAccion, id, sheet);
+	private Observable<String> insertarAccionesFromDeuda(DatosDeDeuda datosDeuda, BigDecimal idDeuda){
+		 return Observable.from(Estrategia.getAccionesDetalle(idDeuda, 
+   											  				  codsEstrategia, 
+   											  				  datosDeuda.getDiaAccion(), 
+   											  				  datosDeuda.getDiaAccionLlamada(), 
+   											  				  datosDeuda.getArquetipo()))
+   						  .toList()
+   						  .map(listaAccionesDetalle -> insertarInBBDD(listaAccionesDetalle, "FILTRO", idDeuda))
+					      .flatMapIterable(x -> x)
+					      .map(accionDetalle -> insertarFilaFichero(accionDetalle.getAccion().getCodAccion(), datosDeuda.getArquetipo(), idDeuda, "SHEET"));
+   											
+	}
+	
+	private String insertarFilaFichero(String codAccion, String codArquetipo, BigDecimal id, String sheet){
+		Printer.printMessage("INSERCION EN FICHERO: codAccion: %s, codArquetipo: %s, id: %f, sheet: %s", codAccion, codArquetipo, id, sheet);
 		try {
 			TimeUnit.MILLISECONDS.sleep(10);
 		} catch (InterruptedException e) {
